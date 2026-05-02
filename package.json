@@ -1,0 +1,27 @@
+{
+  "name": "availabilitybackend",
+  "version": "1.0.0",
+  "description": "Backend for a site pinging Android App",
+  "keywords": [
+    "backend"
+  ],
+  "homepage": "https://github.com/vilmos-nargang/AvailabilityBackend#readme",
+  "bugs": {
+    "url": "https://github.com/vilmos-nargang/AvailabilityBackend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vilmos-nargang/AvailabilityBackend.git"
+  },
+  "license": "GPL-3.0-or-later",
+  "author": "Vilmos Nargang",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "server": "node index.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
