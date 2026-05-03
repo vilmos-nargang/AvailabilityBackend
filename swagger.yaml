@@ -7,7 +7,7 @@ info:
 host: localhost:3000
 basePath: /api
 schemes:
-  - http
+  - https
 
 consumes:
   - application/json
