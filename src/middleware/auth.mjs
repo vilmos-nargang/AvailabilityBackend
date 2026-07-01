@@ -3,8 +3,8 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { UserModel } from "../model.mjs";
 
-const JWT_SECRET = process.env.JWT_SECRET
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN
+const JWT_SECRET = process.env.JWT_SECRET 
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN 
 
 const SALT_ROUNDS = 10;
 

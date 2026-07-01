@@ -1,27 +1,36 @@
+import "dotenv/config";
 
-require('dotenv').config()
-const express = require('express');
-const {initDb} = require('./model.mjs');
-const { authRouter } = require("./routes/auth_route.mjs");
-const { tokenBucket } = require("./middleware/bucket.mjs");
+import express from "express";
+import { initDb } from "./model.mjs";
+import { authRouter } from "./routes/auth_route.mjs";
+import { monitorRouter } from "./routes/monitors.mjs";
+import { checksRouter } from "./routes/checks.mjs";
 
-const app = express()
+const app = express();
 
-app.use(express.json())
+app.use(express.json());
 
-const fallbackport = 80
-const port = process.env.PORT==""? fallbackport: process.env.PORT
+const fallbackPort = 80;
+const port = process.env.PORT || fallbackPort;
 
-initDb()
+initDb();
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-app.use("/api/auth", authRouter)
+app.use("/api/auth", authRouter);
+app.use("/api/monitors", monitorRouter);
+app.use("/api/monitors", checksRouter);
 
+app.use((err, req, res, next) => {
+  console.error(err);
+
+  res.status(err.statusCode || 500).json({
+    message: err.message || "Internal server error"
+  });
+});
 
 app.listen(port, () => {
-  console.log(`App listening on port ${port}`)
-})
-
+  console.log(`App listening on port ${port}`);
+});
