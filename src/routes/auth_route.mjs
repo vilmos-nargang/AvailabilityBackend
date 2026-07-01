@@ -1,10 +1,11 @@
 
 import express from "express";
 import { authMiddleware, loginUser, registerUser } from "../middleware/auth.mjs";
+import { tokenBucket, linearRefillFactory } from "../middleware/bucket.mjs";
 
 export const authRouter = express.Router();
-
-authRouter.post("/register", async (req, res, next) => {
+//One token every ten minutes.
+authRouter.post("/register", tokenBucket(linearRefillFactory(1,600),1), async (req, res, next) => { 
   try {
     const result = await registerUser(req.body);
     res.status(201).json(result);

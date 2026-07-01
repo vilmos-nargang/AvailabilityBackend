@@ -3,6 +3,7 @@ require('dotenv').config()
 const express = require('express');
 const {initDb} = require('./model.mjs');
 const { authRouter } = require("./routes/auth_route.mjs");
+const { tokenBucket } = require("./middleware/bucket.mjs");
 
 const app = express()
 
@@ -19,18 +20,8 @@ app.get("/health", (req, res) => {
 
 app.use("/api/auth", authRouter)
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
+  console.log(`App listening on port ${port}`)
 })
 
-
-
-
-
-/*
-
-*/
