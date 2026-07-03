@@ -1,8 +1,6 @@
 # AvailabilityBackend
-NodeJS uni homework backend for Android Development course
+NodeJS university homework backend for the course: BMEVIAUAV21 Android based software development.
 
-tldr.:
-It pings multiple HTTP/S sites through the backend periodically, based on user setting
+Capable of sending get/head requests to multiple HTTP/S sites, based on user setting. Contains authentication via JWT tokens, stores data on a SQLite database.
 
-LATER
-(through proxies) or (through the tor network)
+Endpoints, table schemas can be found in swagger.yaml.
