@@ -1,17 +1,26 @@
-swagger: "2.0"
++swagger: "2.0"
 
 info:
   title: AvailabilityBackend API
-  version: "0.1.0"
+  version: "1.0.0"
+  description: >
+    Backend for monitoring HTTP/HTTPS website availability.
+    Generated from the current state of the repository.
+  license:
+    name: GPL-3.0-or-later
+  contact:
+    name: Vilmos Nargang
+
+externalDocs:
+  description: Original GitHub repository
+  url: https://github.com/vilmos-nargang/AvailabilityBackend?tab=readme-ov-file
 
 host: localhost:3000
-basePath: /api
+basePath: /
 schemes:
-  - https
-
+  - http
 consumes:
   - application/json
-
 produces:
   - application/json
 
@@ -20,15 +29,41 @@ securityDefinitions:
     type: apiKey
     name: Authorization
     in: header
-    description: "Use: Bearer <token>"
+    description: 'JWT authorization header. Use: Bearer <token>'
+
+tags:
+  - name: Health
+    description: Health check endpoint
+  - name: Auth
+    description: User registration, login, and current-user lookup
+  - name: Monitors
+    description: Website monitor management
+  - name: Checks
+    description: Manual monitor checks and check history
+  - name: Database Models
+    description: SQLite table models used by the backend
 
 paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns a simple status response confirming the server is running.
+      responses:
+        200:
+          description: Server is healthy
+          schema:
+            $ref: "#/definitions/HealthResponse"
 
-  /auth/register:
+  /api/auth/register:
     post:
       tags:
         - Auth
-      summary: Register user
+      summary: Register a user
+      description: >
+        Creates a new user. In the current repository state, registration returns
+        the public user object, not a JWT token.
       parameters:
         - in: body
           name: body
@@ -37,19 +72,28 @@ paths:
             $ref: "#/definitions/RegisterRequest"
       responses:
         201:
-          description: Registered
+          description: User registered
           schema:
-            $ref: "#/definitions/AuthResponse"
+            $ref: "#/definitions/RegisterResponse"
         400:
-          description: Bad request
+          description: Missing email/password or password shorter than 8 characters
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        409:
+          description: Email is already registered
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        500:
+          description: Internal server error
           schema:
             $ref: "#/definitions/ErrorResponse"
 
-  /auth/login:
+  /api/auth/login:
     post:
       tags:
         - Auth
       summary: Login user
+      description: Authenticates a user and returns a JWT token plus the public user object.
       parameters:
         - in: body
           name: body
@@ -60,17 +104,48 @@ paths:
         200:
           description: Logged in
           schema:
-            $ref: "#/definitions/AuthResponse"
+            $ref: "#/definitions/LoginResponse"
+        400:
+          description: Missing email or password
+          schema:
+            $ref: "#/definitions/ErrorResponse"
         401:
-          description: Invalid credentials
+          description: Invalid email or password
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        500:
+          description: Internal server error
           schema:
             $ref: "#/definitions/ErrorResponse"
 
-  /monitors:
+  /api/auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Get current user
+      description: Returns the currently authenticated user.
+      security:
+        - Bearer: []
+      responses:
+        200:
+          description: Current user
+          schema:
+            $ref: "#/definitions/PublicUser"
+        401:
+          description: Missing, invalid, or expired token
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        500:
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /api/monitors:
     get:
       tags:
         - Monitors
       summary: List user's monitors
+      description: Returns all monitors owned by the authenticated user, newest first.
       security:
         - Bearer: []
       responses:
@@ -79,16 +154,23 @@ paths:
           schema:
             type: array
             items:
-              $ref: "#/definitions/Monitor"
+              $ref: "#/definitions/MonitorResponse"
         401:
-          description: Unauthorized
+          description: Missing, invalid, or expired token
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        500:
+          description: Internal server error
           schema:
             $ref: "#/definitions/ErrorResponse"
 
     post:
       tags:
         - Monitors
-      summary: Add a monitor
+      summary: Create monitor
+      description: >
+        Creates a monitor for a URL. The current router accepts either rawUrl or url
+        in the request body. Method defaults to HEAD.
       security:
         - Bearer: []
       parameters:
@@ -99,102 +181,187 @@ paths:
             $ref: "#/definitions/CreateMonitorRequest"
       responses:
         201:
-          description: Created
+          description: Monitor created
           schema:
-            $ref: "#/definitions/Monitor"
+            $ref: "#/definitions/MonitorResponse"
         400:
-          description: Bad request
+          description: Invalid name, URL, or method
           schema:
             $ref: "#/definitions/ErrorResponse"
         401:
-          description: Unauthorized
+          description: Missing, invalid, or expired token
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        409:
+          description: User already has a monitor for this URL and method
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        500:
+          description: Internal server error
           schema:
             $ref: "#/definitions/ErrorResponse"
 
-  /monitors/{monitorId}:
+  /api/monitors/{monitorId}:
+    get:
+      tags:
+        - Monitors
+      summary: Get monitor
+      description: Returns one monitor owned by the authenticated user.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/parameters/MonitorId"
+      responses:
+        200:
+          description: Monitor found
+          schema:
+            $ref: "#/definitions/MonitorResponse"
+        400:
+          description: Invalid monitor id
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        401:
+          description: Missing, invalid, or expired token
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        404:
+          description: Monitor not found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        500:
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
     delete:
       tags:
         - Monitors
       summary: Delete monitor
+      description: Deletes one monitor owned by the authenticated user.
       security:
         - Bearer: []
       parameters:
-        - name: monitorId
-          in: path
-          required: true
-          type: string
+        - $ref: "#/parameters/MonitorId"
       responses:
         204:
-          description: Deleted
-        401:
-          description: Unauthorized
+          description: Monitor deleted
+        400:
+          description: Invalid monitor id
           schema:
             $ref: "#/definitions/ErrorResponse"
-        404:
-          description: Not found
-          schema:
-            $ref: "#/definitions/ErrorResponse"
-
-  /monitors/{monitorId}/check-now:
-    post:
-      tags:
-        - Checks
-      summary: Manually check one monitor now
-      security:
-        - Bearer: []
-      parameters:
-        - name: monitorId
-          in: path
-          required: true
-          type: string
-      responses:
-        201:
-          description: Check result
-          schema:
-            $ref: "#/definitions/CheckResult"
         401:
-          description: Unauthorized
+          description: Missing, invalid, or expired token
           schema:
             $ref: "#/definitions/ErrorResponse"
         404:
           description: Monitor not found
           schema:
             $ref: "#/definitions/ErrorResponse"
+        500:
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
 
-  /monitors/{monitorId}/checks:
-    get:
+  /api/monitors/{monitorId}/check-now:
+    post:
       tags:
         - Checks
-      summary: Get recent checks for one monitor
+      summary: Manually check monitor
+      description: >
+        Runs an immediate availability check for one enabled monitor, stores the
+        result in the checks table, and updates the monitor's last_status and
+        last_checked_at fields.
       security:
         - Bearer: []
       parameters:
-        - name: monitorId
-          in: path
-          required: true
-          type: string
+        - $ref: "#/parameters/MonitorId"
+      responses:
+        201:
+          description: Check created
+          schema:
+            $ref: "#/definitions/CheckResponse"
+        400:
+          description: Invalid monitor id
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        401:
+          description: Missing, invalid, or expired token
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        404:
+          description: Monitor not found or disabled
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        500:
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /api/monitors/{monitorId}/checks:
+    get:
+      tags:
+        - Checks
+      summary: List monitor checks
+      description: Returns recent check results for one monitor owned by the authenticated user.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/parameters/MonitorId"
         - name: limit
           in: query
           required: false
           type: integer
+          minimum: 1
+          maximum: 100
           default: 20
+          description: Maximum number of check results to return. Invalid values fall back to 20.
       responses:
         200:
-          description: Recent checks
+          description: Recent check results
           schema:
             type: array
             items:
-              $ref: "#/definitions/CheckResult"
+              $ref: "#/definitions/CheckResponse"
+        400:
+          description: Invalid monitor id
+          schema:
+            $ref: "#/definitions/ErrorResponse"
         401:
-          description: Unauthorized
+          description: Missing, invalid, or expired token
           schema:
             $ref: "#/definitions/ErrorResponse"
         404:
           description: Monitor not found
           schema:
             $ref: "#/definitions/ErrorResponse"
+        500:
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+parameters:
+  MonitorId:
+    name: monitorId
+    in: path
+    required: true
+    type: integer
+    minimum: 1
+    description: Numeric monitor id.
 
 definitions:
+  HealthResponse:
+    type: object
+    properties:
+      status:
+        type: string
+        example: ok
+
+  ErrorResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        example: Something went wrong
 
   RegisterRequest:
     type: object
@@ -208,6 +375,7 @@ definitions:
         example: student@example.com
       password:
         type: string
+        minLength: 8
         example: password123
 
   LoginRequest:
@@ -222,40 +390,57 @@ definitions:
         example: student@example.com
       password:
         type: string
+        minLength: 8
         example: password123
 
-  AuthResponse:
+  RegisterResponse:
+    type: object
+    properties:
+      user:
+        $ref: "#/definitions/PublicUser"
+
+  LoginResponse:
     type: object
     properties:
       token:
         type: string
-        example: eyJhbGciOiJIUzI1...
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
       user:
-        $ref: "#/definitions/User"
+        $ref: "#/definitions/PublicUser"
 
-  User:
+  PublicUser:
     type: object
     properties:
       id:
-        type: string
-        example: usr_1
+        type: integer
+        example: 1
       email:
         type: string
+        format: email
         example: student@example.com
+      createdAt:
+        type: string
+        format: date-time
+        example: "2026-07-03 12:00:00"
 
   CreateMonitorRequest:
     type: object
     required:
       - name
-      - url
     properties:
       name:
         type: string
         example: Example Site
+      rawUrl:
+        type: string
+        format: uri
+        example: https://example.com
+        description: Preferred request field for the URL.
       url:
         type: string
         format: uri
         example: https://example.com
+        description: Also accepted by the current router as an alias for rawUrl.
       method:
         type: string
         enum:
@@ -264,27 +449,41 @@ definitions:
         default: HEAD
         example: HEAD
 
-  Monitor:
+  MonitorResponse:
     type: object
     properties:
       id:
-        type: string
-        example: mon_1
+        type: integer
+        example: 1
       userId:
-        type: string
-        example: usr_1
+        type: integer
+        example: 1
+      urlId:
+        type: integer
+        example: 1
       name:
         type: string
         example: Example Site
-      url:
+      rawUrl:
         type: string
+        format: uri
         example: https://example.com
+      normalizedUrl:
+        type: string
+        format: uri
+        example: https://example.com/
       method:
         type: string
         enum:
           - HEAD
           - GET
         example: HEAD
+      enabled:
+        type: integer
+        enum:
+          - 0
+          - 1
+        example: 1
       lastStatus:
         type: string
         enum:
@@ -295,19 +494,30 @@ definitions:
       lastCheckedAt:
         type: string
         format: date-time
+        x-nullable: true
+        example: null
+      createdAt:
+        type: string
+        format: date-time
+        example: "2026-07-03 12:00:00"
+      updatedAt:
+        type: string
+        format: date-time
+        example: "2026-07-03 12:00:00"
 
-  CheckResult:
+  CheckResponse:
     type: object
     properties:
       id:
-        type: string
-        example: chk_1
+        type: integer
+        example: 1
       monitorId:
-        type: string
-        example: mon_1
+        type: integer
+        example: 1
       checkedAt:
         type: string
         format: date-time
+        example: "2026-07-03 12:00:00"
       status:
         type: string
         enum:
@@ -316,17 +526,155 @@ definitions:
         example: up
       httpStatusCode:
         type: integer
+        x-nullable: true
         example: 200
       responseTimeMs:
         type: integer
+        x-nullable: true
         example: 153
       error:
         type: string
+        x-nullable: true
         example: null
 
-  ErrorResponse:
+  UsersTable:
     type: object
+    description: SQLite users table.
     properties:
-      message:
+      id:
+        type: integer
+        description: INTEGER PRIMARY KEY AUTOINCREMENT
+        example: 1
+      email:
         type: string
-        example: Something went wrong
+        format: email
+        description: TEXT NOT NULL UNIQUE
+        example: student@example.com
+      password_hash:
+        type: string
+        description: TEXT NOT NULL
+        example: "$2b$10$..."
+      created_at:
+        type: string
+        format: date-time
+        description: TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        example: "2026-07-03 12:00:00"
+
+  UrlsTable:
+    type: object
+    description: SQLite urls table.
+    properties:
+      id:
+        type: integer
+        description: INTEGER PRIMARY KEY AUTOINCREMENT
+        example: 1
+      raw_url:
+        type: string
+        format: uri
+        description: TEXT NOT NULL
+        example: https://example.com
+      normalized_url:
+        type: string
+        format: uri
+        description: TEXT NOT NULL UNIQUE
+        example: https://example.com/
+      created_at:
+        type: string
+        format: date-time
+        description: TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        example: "2026-07-03 12:00:00"
+
+  MonitorsTable:
+    type: object
+    description: SQLite monitors table.
+    properties:
+      id:
+        type: integer
+        description: INTEGER PRIMARY KEY AUTOINCREMENT
+        example: 1
+      user_id:
+        type: integer
+        description: INTEGER NOT NULL, references users(id) ON DELETE CASCADE
+        example: 1
+      url_id:
+        type: integer
+        description: INTEGER NOT NULL, references urls(id) ON DELETE RESTRICT
+        example: 1
+      name:
+        type: string
+        description: TEXT NOT NULL
+        example: Example Site
+      method:
+        type: string
+        description: TEXT NOT NULL DEFAULT 'HEAD'
+        enum:
+          - HEAD
+          - GET
+        example: HEAD
+      enabled:
+        type: integer
+        description: INTEGER NOT NULL DEFAULT 1, constrained to 0 or 1
+        enum:
+          - 0
+          - 1
+        example: 1
+      last_status:
+        type: string
+        description: TEXT NOT NULL DEFAULT 'unknown'
+        enum:
+          - up
+          - down
+          - unknown
+        example: unknown
+      last_checked_at:
+        type: string
+        format: date-time
+        x-nullable: true
+        example: null
+      created_at:
+        type: string
+        format: date-time
+        description: TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        example: "2026-07-03 12:00:00"
+      updated_at:
+        type: string
+        format: date-time
+        description: TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated by trigger after monitor updates
+        example: "2026-07-03 12:00:00"
+
+  ChecksTable:
+    type: object
+    description: SQLite checks table.
+    properties:
+      id:
+        type: integer
+        description: INTEGER PRIMARY KEY AUTOINCREMENT
+        example: 1
+      monitor_id:
+        type: integer
+        description: INTEGER NOT NULL, references monitors(id) ON DELETE CASCADE
+        example: 1
+      checked_at:
+        type: string
+        format: date-time
+        description: TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        example: "2026-07-03 12:00:00"
+      status:
+        type: string
+        description: TEXT NOT NULL
+        enum:
+          - up
+          - down
+        example: up
+      http_status_code:
+        type: integer
+        x-nullable: true
+        example: 200
+      response_time_ms:
+        type: integer
+        x-nullable: true
+        example: 153
+      error:
+        type: string
+        x-nullable: true
+        example: null
