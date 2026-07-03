@@ -57,10 +57,8 @@ export async function registerUser({ email, password }) {
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
   const user = UserModel.create(normalizedEmail, passwordHash);
-  const token = createToken(user);
 
   return {
-    token,
     user: toPublicUser(user)
   };
 }

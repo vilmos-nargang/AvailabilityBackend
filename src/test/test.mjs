@@ -65,16 +65,45 @@ async function createTestUser() {
 
   assert.equal(response.status, 201, JSON.stringify(body));
 
-  token = body.token;
   user = body.user;
 
   return {
     email,
     password,
+    user
+  };
+}
+
+async function authenticateTestUser({email,password,user}){
+  if(!user){
+    throw assert.AssertionError("Register must happen before Login.")
+  }
+
+
+  const response = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      email,
+      password
+    })
+  });
+
+  const body = await readBody(response);
+
+  assert.equal(response.status, 200, JSON.stringify(body));
+
+  user=body.user
+  token=body.token
+
+  return {
     token,
     user
   };
 }
+
 
 test.before(async () => {
   tempDir = await mkdtemp(path.join(tmpdir(), "availability-backend-"));
@@ -101,7 +130,8 @@ test.before(async () => {
   });
 
   await waitForServer();
-  await createTestUser();
+  const creds=await createTestUser();
+  await authenticateTestUser(creds);
 });
 
 test.after(async () => {
