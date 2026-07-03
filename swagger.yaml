@@ -40,8 +40,8 @@ tags:
     description: Website monitor management
   - name: Checks
     description: Manual monitor checks and check history
-  - name: Database Models
-    description: SQLite table models used by the backend
+  - name: DBModels
+    description: SQLite table models used by the backend, can be found in Models, down below
 
 paths:
   /health:
@@ -538,6 +538,8 @@ definitions:
         example: null
 
   UsersTable:
+    tags: 
+     - DBModels
     type: object
     description: SQLite users table.
     properties:
@@ -561,6 +563,8 @@ definitions:
         example: "2026-07-03 12:00:00"
 
   UrlsTable:
+    tags: 
+     - DBModels
     type: object
     description: SQLite urls table.
     properties:
@@ -585,6 +589,8 @@ definitions:
         example: "2026-07-03 12:00:00"
 
   MonitorsTable:
+    tags: 
+     - DBModels
     type: object
     description: SQLite monitors table.
     properties:
@@ -643,6 +649,8 @@ definitions:
         example: "2026-07-03 12:00:00"
 
   ChecksTable:
+    tags: 
+     - DBModels
     type: object
     description: SQLite checks table.
     properties:
